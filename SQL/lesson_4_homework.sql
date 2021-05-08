@@ -211,43 +211,100 @@ fig.show()
 CREATE TABLE printer_updated AS
 TABLE printer 
 
-with printer_updated2 as (select * from printer_updated pu
-left join product p2 
-on pu.model = p2.model)
-delete from printer_updated2
-where maker = 'D'
+delete from printer_updated
+where model in (select pu.model from printer_updated pu 
+                join product p2
+                on pu.model = p2.model
+                where maker = 'D') 
 
+select * from printer_updated
 
--- Тут выдает ошибку, не понимаю, почему.  ERROR: relation "printer_updated2" does not exist
-  
-
-
-
-
-
-
-
-
---task9 (lesson4)
+  --task9 (lesson4)
 -- Компьютерная фирма: Сделать на базе таблицы (printer_updated) view с дополнительной колонкой производителя (название printer_updated_with_makers)
+
+create view printer_updated_with_makers as 
+select pu.*, p2.maker from printer_updated pu
+join product p2 
+on pu.model = p2.model
+
 
 --task10 (lesson4)
 -- Корабли: Сделать view c количеством потопленных кораблей и классом корабля (название sunk_ships_by_classes). Во view: count, class (если значения класса нет/IS NULL, то заменить на 0)
 
+create table out_ships as
+(select * from outcomes o 
+left join ships s  
+on o.ship = s.name) 
+
+update out_ships set class = 0 where class is null
+
+create view sunk_ships_by_classes as
+select class, count(class) 
+from out_ships
+group by class
+
+
+                      
 --task11 (lesson4)
 -- Корабли: По предыдущему view (sunk_ships_by_classes) сделать график в colab (X: class, Y: count)
+
+df = pd.read_sql_query(request, conn)
+fig = px.bar(x=df['class'].to_list(), y=df['count'].to_list(), labels={'x':'class', 'y':'count'})
+fig.show()
+
 
 --task12 (lesson4)
 -- Корабли: Сделать копию таблицы classes (название classes_with_flag) и добавить в нее flag: если количество орудий больше или равно 9 - то 1, иначе 0
 
+create table classes_with_flag as table classes
+
+select *,
+case 
+when numguns >= 9
+then 1
+else 0
+end flag
+from classes_with_flag
+
 --task13 (lesson4)
 -- Корабли: Сделать график в colab по таблице classes с количеством классов по странам (X: country, Y: count)
+
+request = """
+select country, count(country) from classes
+group by country
+"""
+
+df = pd.read_sql_query(request, conn)
+df
+
+df = pd.read_sql_query(request, conn)
+fig = px.bar(x=df['country'].to_list(), y=df['count'].to_list(), labels={'x':'country', 'y':'count'})
+fig.show()
 
 --task14 (lesson4)
 -- Корабли: Вернуть количество кораблей, у которых название начинается с буквы "O" или "M".
 
+select count(name) from ships 
+where name like 'O%' or name like 'M%'
+
 --task15 (lesson4)
 -- Корабли: Вернуть количество кораблей, у которых название состоит из двух слов.
 
+select count(name) from ships 
+where name like '% %' 
+
 --task16 (lesson4)
 -- Корабли: Построить график с количеством запущенных на воду кораблей и годом запуска (X: year, Y: count)
+
+request = """
+select launched, count(launched)
+from ships
+group by launched
+"""
+
+df = pd.read_sql_query(request, conn)
+df
+
+df = pd.read_sql_query(request, conn)
+fig = px.bar(x=df['launched'].to_list(), y=df['count'].to_list(), labels={'x':'year', 'y':'count'})
+fig.show()
